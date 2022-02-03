@@ -21,20 +21,30 @@ typedef struct _private_data_t {
     EXPORT_DECL(void, DCFlushRange, const void *addr, unsigned int length);
     EXPORT_DECL(void, ICInvalidateRange, const void *addr, unsigned int length);
 
-    EXPORT_DECL(int, FSInit, void);
-    EXPORT_DECL(int, FSAddClientEx, void *pClient, int unk_zero_param, int errHandling);
-    EXPORT_DECL(int, FSDelClient, void *pClient);
-    EXPORT_DECL(void, FSInitCmdBlock, void *pCmd);
-    EXPORT_DECL(int, FSGetMountSource, void *pClient, void *pCmd, int type, void *source, int errHandling);
-    EXPORT_DECL(int, FSMount, void *pClient, void *pCmd, void *source, const char *target, uint32_t bytes, int errHandling);
-    EXPORT_DECL(int, FSUnmount, void *pClient, void *pCmd, const char *target, int errHandling);
-    EXPORT_DECL(int, FSOpenFile, void *pClient, void *pCmd, const char *path, const char *mode, int *fd, int errHandling);
-    EXPORT_DECL(int, FSGetStatFile, void *pClient, void *pCmd, int fd, void *buffer, int error);
-    EXPORT_DECL(int, FSReadFile, void *pClient, void *pCmd, void *buffer, int size, int count, int fd, int flag, int errHandling);
-    EXPORT_DECL(int, FSCloseFile, void *pClient, void *pCmd, int fd, int errHandling);
+    EXPORT_DECL(void, socket_lib_init, void);
+    EXPORT_DECL(void, socket_lib_finish, void);
+
+    EXPORT_DECL(int, curl_global_init, long);
+    EXPORT_DECL(void*, curl_easy_init, void);
+    EXPORT_DECL(int, curl_easy_setopt, void *handle, uint32_t param, const void *op);
+    EXPORT_DECL(int, curl_easy_perform, void *handle);
+    EXPORT_DECL(void, curl_easy_getinfo, uint32_t param, void *op);
+    EXPORT_DECL(const char*, curl_easy_strerror, int error);
+    EXPORT_DECL(void, curl_easy_cleanup, void *handle);
+    EXPORT_DECL(void, curl_global_cleanup, void);
+
+    EXPORT_DECL(void, OSReport, const char* fmt, ...);
 
     EXPORT_DECL(int, SYSRelaunchTitle, int argc, char** argv);
 } private_data_t;
+
+// Try moving this struct
+typedef struct DownloadStruct {
+    unsigned char* buffer;
+    unsigned int size;
+    private_data_t* private_data;
+} DownloadStruct_t;
+
 
 #ifdef __cplusplus
 }

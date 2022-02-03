@@ -19,18 +19,21 @@ void loadFunctionPointers(private_data_t * private_data) {
     OS_FIND_EXPORT(coreinit_handle, "ICInvalidateRange", private_data->ICInvalidateRange);
     OS_FIND_EXPORT(coreinit_handle, "OSEffectiveToPhysical", private_data->OSEffectiveToPhysical);
     OS_FIND_EXPORT(coreinit_handle, "exit", private_data->exit);
+    OS_FIND_EXPORT(coreinit_handle, "OSReport", private_data->OSReport);
 
-    OS_FIND_EXPORT(coreinit_handle, "FSInit", private_data->FSInit);
-    OS_FIND_EXPORT(coreinit_handle, "FSAddClientEx", private_data->FSAddClientEx);
-    OS_FIND_EXPORT(coreinit_handle, "FSDelClient", private_data->FSDelClient);
-    OS_FIND_EXPORT(coreinit_handle, "FSInitCmdBlock", private_data->FSInitCmdBlock);
-    OS_FIND_EXPORT(coreinit_handle, "FSGetMountSource", private_data->FSGetMountSource);
-    OS_FIND_EXPORT(coreinit_handle, "FSMount", private_data->FSMount);
-    OS_FIND_EXPORT(coreinit_handle, "FSUnmount", private_data->FSUnmount);
-    OS_FIND_EXPORT(coreinit_handle, "FSOpenFile", private_data->FSOpenFile);
-    OS_FIND_EXPORT(coreinit_handle, "FSGetStatFile", private_data->FSGetStatFile);
-    OS_FIND_EXPORT(coreinit_handle, "FSReadFile", private_data->FSReadFile);
-    OS_FIND_EXPORT(coreinit_handle, "FSCloseFile", private_data->FSCloseFile);
+    unsigned int nsysnet_handle;
+    OSDynLoad_Acquire("nsysnet.rpl", &nsysnet_handle);
+    OS_FIND_EXPORT(nsysnet_handle, "socket_lib_init", private_data->socket_lib_init);
+    OS_FIND_EXPORT(nsysnet_handle, "socket_lib_finish", private_data->socket_lib_finish);
+
+    unsigned int nlibcurl_handle;
+    OSDynLoad_Acquire("nlibcurl.rpl", &nlibcurl_handle);
+    OS_FIND_EXPORT(nlibcurl_handle, "curl_global_init", private_data->curl_global_init);
+    OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_init", private_data->curl_easy_init);
+    OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_setopt", private_data->curl_easy_setopt);
+    OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_perform", private_data->curl_easy_perform);
+    OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_cleanup", private_data->curl_easy_cleanup);
+    OS_FIND_EXPORT(nlibcurl_handle, "curl_global_cleanup", private_data->curl_global_cleanup);
 
     unsigned int sysapp_handle;
     OSDynLoad_Acquire("sysapp.rpl", &sysapp_handle);

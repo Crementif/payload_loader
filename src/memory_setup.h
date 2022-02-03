@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-void setup_memory();
+void setup_memory(int setupSysCalls);
 
 #ifdef __cplusplus
 }

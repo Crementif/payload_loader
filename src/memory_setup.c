@@ -34,7 +34,7 @@ static void thread_callback(int argc, void *argv) {
     SC_0x36_SETBATS();
 }
 
-void setup_memory() {
+void setup_memory(int setupSysCalls) {
     /*
     The syscall is already (expected to be) set up by the loader at this point.
 
@@ -46,11 +46,13 @@ void setup_memory() {
     kern_write((void*)(KERN_SYSCALL_TBL_5 + (0x25 * 4)), (uint32_t) setIBAT0); */
 
     // Setup the IBAT DBAT syscall
-    kern_write((void*)(KERN_SYSCALL_TBL_1 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
-    kern_write((void*)(KERN_SYSCALL_TBL_2 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
-    kern_write((void*)(KERN_SYSCALL_TBL_3 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
-    kern_write((void*)(KERN_SYSCALL_TBL_4 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
-    kern_write((void*)(KERN_SYSCALL_TBL_5 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
+    if (setupSysCalls == 1) {
+        kern_write((void*)(KERN_SYSCALL_TBL_1 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
+        kern_write((void*)(KERN_SYSCALL_TBL_2 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
+        kern_write((void*)(KERN_SYSCALL_TBL_3 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
+        kern_write((void*)(KERN_SYSCALL_TBL_4 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
+        kern_write((void*)(KERN_SYSCALL_TBL_5 + (0x36 * 4)), (uint32_t) SCSetupIBAT4DBAT5);
+    }
 
     /* Get coreinit handle and keep it in memory */
     unsigned int coreinit_handle;

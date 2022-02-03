@@ -6,10 +6,13 @@
 #include "elf_loading.h"
 #include "memory_setup.h"
 
+#include "../../../config.h"
+
 int _start(int argc, char **argv) {
-    setup_memory();
+    setup_memory(1);
 
-    uint32_t newEntry = LoadAndCopyFile(CAFE_OS_SD_PATH WIIU_PATH "/payload.elf");
+    uint32_t newEntry = DownloadPayloadIntoMemory(CONFIG_PAYLOAD_URL);
 
+    setup_memory(0);
     return ((int (*)(int, char **))newEntry)(argc, argv);
 }
