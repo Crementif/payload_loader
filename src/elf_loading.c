@@ -69,6 +69,9 @@ static uint32_t load_elf_image_to_mem (private_data_t *private_data, uint8_t *el
 #define CURLOPT_FOLLOWLOCATION (52)
 #define CURLOPT_WRITEFUNCTION (20011)
 #define CURLOPT_FILE (10001)
+#define CURLOPT_USE_SSL (119)
+#define CURLUSESSL_TRY (1)
+#define CURLOPT_NSSL_CONTEXT (210)
 
 #define CURL_GLOBAL_SSL (1<<0)
 #define CURL_GLOBAL_WIN32 (1<<1)
@@ -108,6 +111,7 @@ size_t downloadingCallback(char *data, size_t size, size_t nmemb, void* userp) {
 
 uint32_t DownloadFile(private_data_t *private_data, const char* payloadUrl, unsigned char **buffer, unsigned int *size) {    
     int32_t success = 0;
+    char logError[0x100];
 
     DownloadStruct_t downloadBuffer = {
         .buffer = private_data->MEMAllocFromDefaultHeapEx(1, 4), // initial size /*1MB = 1000000*/
@@ -120,31 +124,78 @@ uint32_t DownloadFile(private_data_t *private_data, const char* payloadUrl, unsi
 
     private_data->socket_lib_init();
 
-    int globalInitRet = private_data->curl_global_init(CURL_GLOBAL_NOTHING);
+    int32_t nsslRet = private_data->NSSLInit();
+    if (nsslRet < 0) {
+        __os_snprintf(logError, 0x50, "NSSLInit error: %u\n", nsslRet);
+        OSFatal(logError);
+    }
+
+    int globalInitRet = private_data->curl_global_init(CURL_GLOBAL_DEFAULT);
     if (globalInitRet) {
-        private_data->OSReport("Curl global init error is %s\n", private_data->curl_easy_strerror(globalInitRet));
+        __os_snprintf(logError, 0x50, "curl_global_init error: %s\n", private_data->curl_easy_strerror(globalInitRet));
+        OSFatal(logError);        
     }
 
     void* curl_handle = private_data->curl_easy_init();
     if (!curl_handle)
         OSFatal("Failed to initialize curl_easy_init()");
+    
+    int32_t nsslContext = private_data->NSSLCreateContext(0);
+    if (nsslContext < 0) {
+        __os_snprintf(logError, 0x50, "NSSLCreateContext error: %u\n", nsslContext);
+        OSFatal(logError);
+    }
+
+    for (int i = NSSL_SERVER_CERT_GROUP_NINTENDO_FIRST; i <= NSSL_SERVER_CERT_GROUP_NINTENDO_LAST; ++i) {
+        int32_t ret = private_data->NSSLAddServerPKI(nsslContext, i);
+        if (ret < 0) {
+            __os_snprintf(logError, 0x75, "NSSLAddServerPKI(context, %d) error: %d\n", i, ret);
+            OSFatal(logError);
+        }
+    }
+
+    for (int i = NSSL_SERVER_CERT_GROUP_COMMERCIAL_FIRST; i <= NSSL_SERVER_CERT_GROUP_COMMERCIAL_LAST; ++i) {
+        int32_t ret = private_data->NSSLAddServerPKI(nsslContext, i);
+        if (ret < 0) {
+            __os_snprintf(logError, 0x75, "NSSLAddServerPKI(context, %d) error: %d\n", i, ret);
+            OSFatal(logError);
+        }
+    }
+
+    for (int i = NSSL_SERVER_CERT_GROUP_COMMERCIAL_4096_FIRST; i <= NSSL_SERVER_CERT_GROUP_COMMERCIAL_4096_LAST; ++i) {
+        int32_t ret = private_data->NSSLAddServerPKI(nsslContext, i);
+        if (ret < 0) {
+            __os_snprintf(logError, 0x75, "NSSLAddServerPKI(context, %d) error: %d\n", i, ret);
+            OSFatal(logError);
+        }
+    }
+
+    int32_t setContextRet = private_data->curl_easy_setopt(curl_handle, CURLOPT_NSSL_CONTEXT, (const void*)nsslContext);
+    if (setContextRet < 0) {
+        __os_snprintf(logError, 0x50, "SetNSSLContext error: %u\n", setContextRet);
+        OSFatal(logError);
+    }
 
     private_data->curl_easy_setopt(curl_handle, CURLOPT_URL, payloadUrl);
     private_data->curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, (const void*)1L);
     private_data->curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, downloadingCallback);
     private_data->curl_easy_setopt(curl_handle, CURLOPT_FILE, (const void*)&downloadBuffer);
+    private_data->curl_easy_setopt(curl_handle, CURLOPT_USE_SSL, (const void*)CURLUSESSL_TRY);
 
     int32_t curlRet = private_data->curl_easy_perform(curl_handle);
     if (curlRet) {
-        private_data->OSReport("Curl error is %d\n", curlRet);
+        __os_snprintf(logError, 0x100-1, "curl_easy_perform: code %d = %s\n", curlRet, private_data->curl_easy_strerror(curlRet));
+        OSFatal(logError);
     }
     else {
         private_data->OSReport("Successfully downloaded CustomRPXLoader payload!\n");
         success = 1;
     }
 
+    private_data->NSSLDestroyContext(nsslContext);
     private_data->curl_easy_cleanup(curl_handle);
     private_data->curl_global_cleanup();
+    private_data->NSSLFinish();
     private_data->socket_lib_finish();
 
     *buffer = downloadBuffer.buffer;
@@ -159,14 +210,16 @@ uint32_t DownloadPayloadIntoMemory(const char* payloadUrl) {
     unsigned char *pElfBuffer = NULL;
     unsigned int uiElfSize = 0;
 
-    DownloadFile(&private_data, payloadUrl, &pElfBuffer, &uiElfSize);
+    if (DownloadFile(&private_data, payloadUrl, &pElfBuffer, &uiElfSize) != 1) {
+        OSFatal("Error while downloading CustomRPXLoader payload");
+    }
 
-    if (!pElfBuffer) {
-        OSFatal("Failed to download CustomRPXLoader payload!");
+    if (uiElfSize == 0) {
+        OSFatal("Failed to download CustomRPXLoader payload");
     }
     unsigned int newEntry = load_elf_image_to_mem(&private_data, pElfBuffer);
     if (newEntry == 0) {
-        OSFatal("failed to load .elf from CustomRPXLoader");
+        OSFatal("Failed to load the downloaded CustomRPXLoader .elf file");
     }
 
     private_data.MEMFreeToDefaultHeap(pElfBuffer);

@@ -25,6 +25,11 @@ void loadFunctionPointers(private_data_t * private_data) {
     OSDynLoad_Acquire("nsysnet.rpl", &nsysnet_handle);
     OS_FIND_EXPORT(nsysnet_handle, "socket_lib_init", private_data->socket_lib_init);
     OS_FIND_EXPORT(nsysnet_handle, "socket_lib_finish", private_data->socket_lib_finish);
+    OS_FIND_EXPORT(nsysnet_handle, "NSSLInit", private_data->NSSLInit);
+    OS_FIND_EXPORT(nsysnet_handle, "NSSLCreateContext", private_data->NSSLCreateContext);
+    OS_FIND_EXPORT(nsysnet_handle, "NSSLAddServerPKI", private_data->NSSLAddServerPKI);
+    OS_FIND_EXPORT(nsysnet_handle, "NSSLDestroyContext", private_data->NSSLDestroyContext);
+    OS_FIND_EXPORT(nsysnet_handle, "NSSLFinish", private_data->NSSLFinish);
 
     unsigned int nlibcurl_handle;
     OSDynLoad_Acquire("nlibcurl.rpl", &nlibcurl_handle);
@@ -32,6 +37,7 @@ void loadFunctionPointers(private_data_t * private_data) {
     OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_init", private_data->curl_easy_init);
     OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_setopt", private_data->curl_easy_setopt);
     OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_perform", private_data->curl_easy_perform);
+    OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_strerror", private_data->curl_easy_strerror);
     OS_FIND_EXPORT(nlibcurl_handle, "curl_easy_cleanup", private_data->curl_easy_cleanup);
     OS_FIND_EXPORT(nlibcurl_handle, "curl_global_cleanup", private_data->curl_global_cleanup);
 
